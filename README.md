@@ -10,7 +10,7 @@ OLED panels and other modern display tech are vulnerable to **burn-in** — the 
 
 The scenarios I run into the most:
 
-- I send a long prompt to Claude and walk away (or move to a different monitor) while the response generates — the input UI sits frozen on screen for minutes
+- I send a long prompt and walk away (or move to a different monitor) while the response generates — the input UI sits frozen on screen for minutes
 - I work on an external monitor with the laptop open, and the laptop's screen sits showing the same desktop for hours
 - A long meeting where the same window is in the foreground but I'm not interacting with it
 - Anywhere the display is on but the content is effectively frozen
