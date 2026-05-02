@@ -1,0 +1,30 @@
+# Cached overlay binary (built by run-overlay.command)
+.pixelflow-overlay
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift / Xcode (if you add a package or project later)
+.build/
+.swiftpm/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Editor / tooling
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs (launcher may redirect elsewhere; ignore any local logs)
+*.log
+
+# Secrets / local env
+.env
+.env.*
+
+# Optional future JS tooling
+node_modules/
