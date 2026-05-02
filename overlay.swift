@@ -772,11 +772,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var speedMenu: NSMenu!
     private var densityMenu: NSMenu!
     private var timer: Timer?
+    /// While held, macOS will not dim or turn off the display for idle (same idea as keeping user activity).
+    private var displayWakeActivity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         rebuildWindows()
         setupStatusItem()
         startTimer()
+        updateDisplaySleepPrevention()
 
         NotificationCenter.default.addObserver(
             self,
@@ -787,6 +790,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        endDisplaySleepPrevention()
         timer?.invalidate()
         timer = nil
         for view in views { view.style = nil }   // triggers Plasma deinit → pixel buffer freed
@@ -935,7 +939,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePause() {
         state.enabled.toggle()
         pauseItem.title = state.enabled ? "Pause" : "Resume"
+        updateDisplaySleepPrevention()
         for view in views { view.needsDisplay = true }
+    }
+
+    private func updateDisplaySleepPrevention() {
+        if state.enabled {
+            if displayWakeActivity == nil {
+                displayWakeActivity = ProcessInfo.processInfo.beginActivity(
+                    options: .idleDisplaySleepDisabled,
+                    reason: "pixelflow overlay"
+                )
+            }
+        } else {
+            endDisplaySleepPrevention()
+        }
+    }
+
+    private func endDisplaySleepPrevention() {
+        if let token = displayWakeActivity {
+            ProcessInfo.processInfo.endActivity(token)
+            displayWakeActivity = nil
+        }
     }
 
     @objc private func setStyle(_ sender: NSMenuItem) {
