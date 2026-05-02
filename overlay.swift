@@ -54,6 +54,7 @@ func lerpHue(_ h0: CGFloat, _ h1: CGFloat, _ f: CGFloat) -> CGFloat {
     return result
 }
 
+// Anchor values mirror `PALETTES` in js/palette.js (macOS overlay + web).
 let palettes: [Palette] = [
     Palette(name: "Spectrum", anchors: [
         PaletteAnchor(h: 0.00, s: 0.7, b: 0.95),

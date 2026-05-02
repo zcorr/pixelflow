@@ -6,6 +6,7 @@
     const speedVal = document.getElementById('speed-val');
     const brightnessInput = document.getElementById('brightness');
     const brightnessVal = document.getElementById('brightness-val');
+    const paletteSelect = document.getElementById('palette');
     const modeLabel = document.getElementById('mode-label');
     const body = document.body;
 
@@ -26,11 +27,16 @@
         autoCycleInterval: 45000,
         speed: 1,
         brightness: 0.85,
+        paletteIndex: 0,
         paused: false,
         time: 0,
         lastFrame: performance.now(),
         modes: {}
     };
+
+    function currentPalette() {
+        return PALETTES[state.paletteIndex] || PALETTES[0];
+    }
 
     function resize() {
         const dpr = window.devicePixelRatio || 1;
@@ -100,7 +106,11 @@
 
         const mode = state.modes[state.currentMode];
         if (mode) {
-            mode.render(ctx, state.time, window.innerWidth, window.innerHeight, state.brightness);
+            const lw = window.innerWidth;
+            const lh = window.innerHeight;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, lw, lh);
+            mode.render(ctx, state.time, lw, lh, state.brightness, currentPalette());
         }
 
         requestAnimationFrame(render);
@@ -142,6 +152,9 @@
         state.brightness = parseFloat(e.target.value);
         brightnessVal.textContent = Math.round(state.brightness * 100) + '%';
     });
+    paletteSelect.addEventListener('change', (e) => {
+        state.paletteIndex = parseInt(e.target.value, 10);
+    });
 
     function setModeFromKey(name) {
         modeSelect.value = name;
@@ -170,6 +183,15 @@
             case '4': setModeFromKey('pixelrain'); break;
             case '5': setModeFromKey('sweep'); break;
             case 'a': setModeFromKey('auto'); break;
+            case '[':
+            case ']': {
+                e.preventDefault();
+                const n = PALETTES.length;
+                const delta = e.key === '[' ? -1 : 1;
+                state.paletteIndex = (state.paletteIndex + delta + n) % n;
+                paletteSelect.value = String(state.paletteIndex);
+                break;
+            }
         }
     });
 

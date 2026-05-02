@@ -1,6 +1,8 @@
 # pixelflow
 
-Two complementary tools for protecting modern displays from burn-in — one for when you're actively at the computer, one for when you've stepped away.
+A **click-through macOS overlay** that drifts soft animation across your whole desktop while you work — so static UI does not sit on the same subpixels for minutes at a time. Burn-in insurance you can leave running over a long prompt, a build, or a chat without losing the screen.
+
+There is also a **browser-based fullscreen animation** (no install) for the cases where you want the whole display covered instead.
 
 ## The problem
 
@@ -15,20 +17,16 @@ The scenarios I run into the most:
 
 The standard macOS screensavers help a little, but most are designed to look pretty rather than to actually exercise every pixel — they tend to draw bright moving foregrounds against a dark background, which is precisely the *opposite* of what you want. The dark areas don't get exercised at all. They also kick the screen out entirely, which is no good when you actually want to *watch* what's happening.
 
-## What this does
+## The overlay
 
-There are two modes, designed for different situations.
+A translucent, always-on-top, **click-through** window sits over your entire desktop with one of six animated styles drifting across it. Most of the screen stays visible, but every pixel gets briefly obscured as the animation passes over it.
 
-### Overlay mode — the primary tool
-
-A translucent, always-on-top, **click-through** window that sits over your entire desktop with one of six animated styles drifting across it. Most of the screen is visible at any given moment, but every pixel gets briefly obscured as the animation passes over it.
-
-- **Most of the screen is fully visible at any given moment** — you can keep watching Claude generate, monitor a long build, follow a chat, etc.
+- **Most of the screen is fully visible at any given moment** — you can keep watching a long response stream in, monitor a build, follow a chat, etc.
 - **Every pixel gets fully obscured periodically** as elements drift over it, which is what actually refreshes the subpixel exposure
 - **It's click-through.** Clicks and keystrokes pass straight through to whatever window is underneath. You can approve edits, switch apps with `⌘-Tab`, scroll, type — exactly as if the overlay weren't there.
 - **It runs on every connected display.** Helpful when one display is the working one and another sits idle.
 
-**Six styles** (selectable from the menu bar):
+**Six styles** (menu bar ✦ → Style):
 
 | Style | What it does |
 | --- | --- |
@@ -51,21 +49,7 @@ If you want to reclaim a bit of menu-bar real estate (especially helpful on a no
 
 Typical resident memory after warm-up is around **90 MB** including the Swift / AppKit runtime, with no growth over time.
 
-### Fullscreen mode — for when you're stepping away
-
-A fullscreen browser-based animation, intended for when you actually want to obscure the whole display (a long task you're walking away from, or a second monitor you're not using). Five animation modes plus an auto-cycle that rotates through all of them. Calm motion, full-spectrum colors, every pixel exercised continuously.
-
-| Mode | What it does |
-| --- | --- |
-| **Aurora** | Slow flowing color gradient with bright bands sweeping across the whole screen |
-| **Plasma** | Classic mathematical plasma — every pixel cycles through the full hue spectrum |
-| **Particles** | Drifting blobs of light over a slowly-shifting base color, covering all regions |
-| **Pixel rain** | Cascading colored pixels that hit every column over and over |
-| **Sweep** | Wide gradient bands sweeping across the screen at different angles |
-
-## Running it
-
-### Overlay mode
+### Running the overlay
 
 Requires the Swift toolchain that ships with Xcode Command Line Tools. If you don't already have it:
 
@@ -81,11 +65,11 @@ Then double-click `run-overlay.command`, or from a terminal:
 
 The launcher compiles `overlay.swift` to a cached binary on first run, kills any prior instance, and launches the overlay detached from the terminal. The terminal window is safe to close immediately.
 
-A ✦ icon will appear in the menu bar — that's your control surface. Pause, adjust opacity/speed/blob-count, or quit from there.
+A ✦ icon will appear in the menu bar — that's your control surface. Pause, adjust opacity/speed/density, or quit from there.
 
-### Fullscreen mode
+## Fullscreen in the browser
 
-No build step. Either open `index.html` directly in any modern browser and press `F` for fullscreen, or double-click `run-fullscreen.command` for a chrome-less Chrome app window that starts in fullscreen.
+For times when obscuring the entire display is what you want — a long job you are walking away from, or a panel you are not using — open `index.html` in a modern browser (or use `run-fullscreen.command` for a chrome-less Chrome app window that starts in fullscreen). The same palette names and anchor colors as the overlay live in `js/palette.js` (kept in sync with the Swift `palettes` array). Five animation modes match the overlay styles except **Blobs**; there is an auto-cycle that rotates through all of them.
 
 Move your mouse to reveal controls. Keyboard:
 
@@ -95,7 +79,10 @@ Move your mouse to reveal controls. Keyboard:
 | `Space` | Pause / resume |
 | `1`–`5` | Jump to a specific mode |
 | `A` | Auto-cycle |
+| `[` / `]` | Previous / next palette |
 | `Esc` | Exit fullscreen |
+
+No build step for this path — static HTML, CSS, and JavaScript.
 
 ## File structure
 
@@ -103,14 +90,15 @@ Move your mouse to reveal controls. Keyboard:
 pixelflow/
 ├── README.md
 │
-├── overlay.swift             — translucent always-on-top overlay (single Swift file)
+├── overlay.swift             — menu-bar app + overlay window(s) + all six styles (Swift)
 ├── run-overlay.command       — launcher: compiles + runs detached
 │
-├── index.html                — fullscreen mode entry point
-├── styles.css                — fullscreen-mode controls overlay
-├── run-fullscreen.command    — opens fullscreen mode in a Chrome app window
+├── index.html                — browser entry point
+├── styles.css                — on-screen controls
+├── run-fullscreen.command    — opens the page in a Chrome app window, fullscreen
 └── js/
-    ├── app.js                — main loop, mode switching, fullscreen + input handling
+    ├── palette.js            — palette definitions (mirror overlay.swift anchors)
+    ├── app.js                — main loop, mode switching, input
     └── modes/
         ├── aurora.js
         ├── plasma.js
@@ -119,12 +107,12 @@ pixelflow/
         └── sweep.js
 ```
 
-The fullscreen mode's animation modes are each a class with `init`, `resize`, `reset`, and `render(ctx, time, width, height, brightness)`. Adding another mode is a matter of dropping a file into `js/modes/` and registering it in `app.js`.
+The overlay is one Swift file: borderless `.floating`-level windows per `NSScreen`, `ignoresMouseEvents = true` for click-through, and a 30 Hz timer driving the styles above.
 
-The overlay mode is one Swift file that creates a borderless `.floating`-level window per `NSScreen`, sets `ignoresMouseEvents = true` for click-through, and drives a small set of drifting radial-gradient blobs from a 30 Hz timer. The status-bar item is the entire UI surface.
+The browser build splits each animation into `js/modes/*.js`; each mode exposes `init`, `resize`, `reset`, and `render(ctx, time, width, height, brightness, palette)`. Adding another mode means a new file under `js/modes/` plus registration in `app.js`.
 
 ## Why this exists
 
 This is one of a series of small projects I'm building to **practice AI prompt engineering** — specifically, getting an entire usable tool from a single well-formed prompt rather than building it incrementally over many turns. The interesting work is mostly upstream of the code: figuring out which features are actually load-bearing, which trade-offs matter, what the smallest defensible scope looks like, and how to express that in a brief that produces something I'd actually keep using.
 
-The overlay mode in particular is a good example of how the *exact* framing of the problem matters. The first version of pixelflow shipped a fullscreen burn-in animation, which technically solves "burn-in protection" but doesn't fit the actual situation that motivated it: I want to *watch* a long-running prompt finish, not blank the screen entirely. A click-through overlay was the right shape — but only became obvious once the wrong one was sitting in front of me. That iteration loop, even within a single session, is the part of prompt engineering this project is trying to practice.
+The overlay is the piece that maps cleanly onto the real problem: I want to *watch* a long-running prompt finish, not blank the screen entirely. A click-through overlay was the right shape — but only became obvious once a fullscreen-only prototype was sitting in front of me. That iteration loop, even within a single session, is the part of prompt engineering this project is trying to practice. The browser fullscreen view came later as a straightforward way to share the same visual language without Xcode.
